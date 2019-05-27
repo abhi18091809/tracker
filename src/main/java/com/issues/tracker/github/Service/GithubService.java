@@ -39,6 +39,9 @@ public class GithubService {
 
     private Map<String, String> getParamsFromUrl(String url) {
 
+//        This method helps in getting the owner and repo name from the input
+//        url
+
         List<String> words = Arrays.asList(url.split("/"));
         int n = words.size();
         Map<String, String> urlParams = new HashMap<>();
@@ -77,9 +80,13 @@ public class GithubService {
             logger.info("Github service layer invoked to get all open issues " +
                     "opened 24 hours before now");
 
+//            Getting the time 24 hours before now
+
             Date dMinusOne = getDifferenceWithCurrent(-24);
 
             SimpleDateFormat dtf = new SimpleDateFormat(DATE_FORMAT);
+
+//            Creating search query for 'q' param in Github search API
 
             Map<String, String> params = getParamsFromUrl(publicUrl);
             String searchQuery =
@@ -115,6 +122,21 @@ public class GithubService {
 
             logger.info("Github service layer invoked to get all open issues " +
                     "opened after 7 days from now");
+
+//          Lets assume a timeline
+//            ---------------------------|------------------------|------>|now()
+
+//            ---------------------------|----------------------->|-now()-24hrs
+
+//            -------------------------->|-now()-7days
+
+//                                       |<---------------------->| issues to
+//                                         be counted
+
+//            We calculate the difference using two http calls which queries
+//            for number of issues at different point of times.
+            
+
 
             Date d1 = getDifferenceWithCurrent(-24);
             Date d2 = getDifferenceWithCurrent(-168);
