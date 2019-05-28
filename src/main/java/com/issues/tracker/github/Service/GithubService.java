@@ -2,7 +2,6 @@ package com.issues.tracker.github.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.issues.tracker.github.Config.GithubPropertyManager;
-import com.issues.tracker.github.Request.RepositoryResponse;
 import com.issues.tracker.github.Request.SearchResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,7 @@ public class GithubService {
 
     }
 
-    public RepositoryResponse getOpenIssues(String publicUrl) {
+    public SearchResponse getOpenIssues(String publicUrl) {
         try {
             logger.info("Github service layer invoked to get all open issues");
 
@@ -56,10 +55,21 @@ public class GithubService {
             String url = "https://api.github.com/repos/"+params.get("owner")+
                     "/"+params.get("repo");
 
-            ResponseEntity<RepositoryResponse> response =
-                    restTemplate.exchange(url,
+            //Getting open pull requests
+            String searchQuery = "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
+                    ":issue+is:open";
+
+            UriComponentsBuilder builder =
+                    UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
+                            .queryParam("q", searchQuery);
+
+            Map<String,String> map = new HashMap<>();
+            map.put("q",searchQuery);
+
+            ResponseEntity<SearchResponse> response =
+                    restTemplate.exchange(builder.buildAndExpand(map).toUri(),
                             HttpMethod.GET,null,
-                            RepositoryResponse.class);
+                            SearchResponse.class);
 
             if (response.getBody() != null) {
                 return response.getBody();
@@ -83,8 +93,8 @@ public class GithubService {
 
             Map<String, String> params = getParamsFromUrl(publicUrl);
             String searchQuery =
-                    "repo:"+params.get("owner")+"/"+params.get("repo")+
-                            "+created:>"+dtf.format(dMinusOne);
+                    "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
+                            ":issue+is:open+created:>"+dtf.format(dMinusOne);
 
 
             UriComponentsBuilder builder =
@@ -124,10 +134,10 @@ public class GithubService {
             Map<String, String> params = getParamsFromUrl(publicUrl);
 
             String searchQuery1 =
-                    "repo:"+params.get("owner")+"/"+params.get("repo")+
-                            "+created:>"+dtf.format(d1);
+                    "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
+                            ":issue+is:open+created:>"+dtf.format(d1);
             String searchQuery2 = "repo:"+params.get("owner")+"/"+params.get("repo")+
-                    "+created:>"+dtf.format(d2);
+                    "+is:issue+is:open+created:>"+dtf.format(d2);
 
             Map<String,String> map1 = new HashMap<>();
             map1.put("q",searchQuery1);
@@ -180,22 +190,9 @@ public class GithubService {
                     "opened before seven days from now");
 
             Map<String, String> params = getParamsFromUrl(publicUrl);
-            String url = "https://api.github.com/repos/"+params.get("owner")+
-                    "/"+params.get("repo");
 
-            ResponseEntity<RepositoryResponse> responseAll =
-                    restTemplate.exchange(url,
-                            HttpMethod.GET,null,
-                            RepositoryResponse.class);
-
-            Date dMinusSeven = getDifferenceWithCurrent(-168);
-
-            SimpleDateFormat dtf = new SimpleDateFormat(DATE_FORMAT);
-
-            String searchQuery =
-                    "repo:"+params.get("owner")+"/"+params.get("repo")+
-                            "+created:>"+dtf.format(dMinusSeven);
-
+            String searchQuery = "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
+                    ":issue+is:open";
 
             UriComponentsBuilder builder =
                     UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
@@ -204,13 +201,34 @@ public class GithubService {
             Map<String,String> map = new HashMap<>();
             map.put("q",searchQuery);
 
-            ResponseEntity<SearchResponse> responseMinusSeven =
+            ResponseEntity<SearchResponse> responseAll =
                     restTemplate.exchange(builder.buildAndExpand(map).toUri(),
                             HttpMethod.GET,null,
                             SearchResponse.class);
 
+            Date dMinusSeven = getDifferenceWithCurrent(-168);
+
+            SimpleDateFormat dtf = new SimpleDateFormat(DATE_FORMAT);
+
+            String searchQuery2 =
+                    "repo:"+params.get("owner")+"/"+params.get("repo")+
+                            "+is:issue+is:open+created:>"+dtf.format(dMinusSeven);
+
+
+            UriComponentsBuilder builder2 =
+                    UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
+                            .queryParam("q", searchQuery2);
+
+            Map<String,String> map2 = new HashMap<>();
+            map.put("q",searchQuery);
+
+            ResponseEntity<SearchResponse> responseMinusSeven =
+                    restTemplate.exchange(builder2.buildAndExpand(map2).toUri(),
+                            HttpMethod.GET,null,
+                            SearchResponse.class);
+
             SearchResponse response = new SearchResponse();
-            response.setTotalCount(responseAll.getBody().getOpenIssues() - responseMinusSeven.getBody().getTotalCount());
+            response.setTotalCount(responseAll.getBody().getTotalCount() - responseMinusSeven.getBody().getTotalCount());
 
             return response;
 

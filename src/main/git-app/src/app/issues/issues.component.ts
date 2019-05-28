@@ -32,7 +32,7 @@ export class IssuesComponent implements OnInit {
       this.showError = false;
       this.searching = true;
       this._githubService.getTotalIssues(url)
-      .subscribe( data => this.results.total = data.open_issues);
+      .subscribe( data => this.results.total = data.total_count);
       this._githubService.getOpenIssuesYesterday(url)
       .subscribe( data => this.results.yesterday = data.total_count);
       this._githubService.getOpenIssuesInWeek(url)

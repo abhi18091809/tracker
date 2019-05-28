@@ -21,7 +21,7 @@ public class GithubController {
     }
 
     @RequestMapping(value = "/getOpenIssues" , method = RequestMethod.GET)
-    public RepositoryResponse getOpenIssues(@QueryParam(value = "publicUrl") String publicUrl){
+    public SearchResponse getOpenIssues(@QueryParam(value = "publicUrl") String publicUrl){
         //TODO:lOGGER
         return githubService.getOpenIssues(publicUrl);
     }

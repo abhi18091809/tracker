@@ -14,8 +14,8 @@ export class GithubService {
   constructor(private http: HttpClient) { }
 
 
-  getTotalIssues(url): Observable<ITotalCount> {
-    return this.http.get<ITotalCount>(
+  getTotalIssues(url): Observable<ISearchCount> {
+    return this.http.get<ISearchCount>(
       '/v1/getOpenIssues', {
         params: {
           publicUrl:url
