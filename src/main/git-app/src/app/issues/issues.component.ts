@@ -38,8 +38,13 @@ export class IssuesComponent implements OnInit {
       this._githubService.getOpenIssuesInWeek(url)
       .subscribe(data => this.results.week = data.total_count);
       this._githubService.getOpenIssuesBeforeWeek(url)
-      .subscribe( data => this.results.beforeWeek = data.total_count);
-      this.searching = false;
+      .subscribe( 
+        data => this.results.beforeWeek = data.total_count
+        ).add(()=>{
+          this.searching = false;
+        })
+        
+      
 
     }
     

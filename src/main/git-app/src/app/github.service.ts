@@ -10,8 +10,13 @@ import { ISearchCount } from './searchCount';
 export class GithubService {
 
   private _url = "src/results.json";
+  public searching = false;
 
   constructor(private http: HttpClient) { }
+
+  getSearching(){
+    return this.searching;
+  }
 
 
   getTotalIssues(url): Observable<ISearchCount> {

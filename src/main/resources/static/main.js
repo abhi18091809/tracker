@@ -187,7 +187,11 @@ var GithubService = /** @class */ (function () {
     function GithubService(http) {
         this.http = http;
         this._url = "src/results.json";
+        this.searching = false;
     }
+    GithubService.prototype.getSearching = function () {
+        return this.searching;
+    };
     GithubService.prototype.getTotalIssues = function (url) {
         return this.http.get('/v1/getOpenIssues', {
             params: {
@@ -247,7 +251,7 @@ module.exports = ".search-container {\n    padding: 1.5em;\n}\n\n.table-wrapper 
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"row search-container\">\n  <div class=\"col-md-3 col-lg-3\">\n    <span>Enter URL of any public github repository</span>\n  </div>\n  <div class=\"col-md-4 col-lg-4\">\n    <input class=\"form-control\" [(ngModel)]=\"url\" placeholder=\"eg. https://github.com/Microsoft/vscode\" type=\"text\">\n    <span *ngIf=\"showError\" style=\"color: red\">Please enter a URL</span>\n  </div>\n  <div class=\"col-md-5 col-lg-5\"></div>\n</div>\n<div class=\"row search-container\">\n  <div class=\"col-md-7 col-lg-7\">\n    <button *ngIf=\"!searching\" class=\"btn btn-primary float-right\" (click)=\"getResults(url)\">Get Results</button>\n  </div>\n  <div class=\"col-md-5 col-lg-5\"></div>\n</div>\n\n<div class=\"row table-wrapper\">\n  <div class=\"col-md-7 col-lg-7\">\n    <table class=\"table table-striped\">\n      <thead>\n        <tr>\n          <th scope=\"col\" colspan=\"3\">Criteria</th>\n          <th scope=\"col\">Count</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Total number of open issues</th>\n          <td>{{results.total || \"-\"}}</td>\n        </tr>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Number of open issues that were opened in the last 24 hours</th>\n          <td>{{results.yesterday || \"-\"}}</td>\n        </tr>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Number of open issues that were opened more than 24 hours ago but less than 7 days\n            ago</th>\n          <td>{{results.week || \"-\"}}</td>\n        </tr>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Number of open issues that were opened more than 7 days ago</th>\n          <td>{{results.beforeWeek || \"-\"}}</td>\n        </tr>\n      </tbody>\n    </table>\n  </div>\n  <div class=\"col-md-5 col-lg-5\"></div>\n</div>"
+module.exports = "<div class=\"row search-container\">\n  <div class=\"col-md-3 col-lg-3\">\n    <span>Enter URL of any public github repository</span>\n  </div>\n  <div class=\"col-md-4 col-lg-4\">\n    <input class=\"form-control\" [(ngModel)]=\"url\" placeholder=\"eg. https://github.com/Microsoft/vscode\" type=\"text\">\n    <span *ngIf=\"showError\" style=\"color: red\">Please enter a URL</span>\n  </div>\n  <div class=\"col-md-5 col-lg-5\"></div>\n</div>\n<div class=\"row search-container\">\n  <div class=\"col-md-7 col-lg-7\">\n    <button *ngIf=\"!searching\" class=\"btn btn-primary float-right\" (click)=\"getResults(url)\">Get Results</button>\n    <img *ngIf=\"searching\" class=\"float-right\" src=\"assets/ripple.svg\" width=\"40\" height=\"40\" alt=\"\">\n  </div>\n  <div class=\"col-md-5 col-lg-5\">\n  </div>\n</div>\n\n<div class=\"row table-wrapper\">\n  <div class=\"col-md-7 col-lg-7\">\n    <table class=\"table table-striped\">\n      <thead>\n        <tr>\n          <th scope=\"col\" colspan=\"3\">Criteria</th>\n          <th scope=\"col\">Count</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Total number of open issues</th>\n          <td>{{results.total || \"-\"}}</td>\n        </tr>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Number of open issues that were opened in the last 24 hours</th>\n          <td>{{results.yesterday || \"-\"}}</td>\n        </tr>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Number of open issues that were opened more than 24 hours ago but less than 7 days\n            ago</th>\n          <td>{{results.week || \"-\"}}</td>\n        </tr>\n        <tr>\n          <th colspan=\"3\" scope=\"row\">Number of open issues that were opened more than 7 days ago</th>\n          <td>{{results.beforeWeek || \"-\"}}</td>\n        </tr>\n      </tbody>\n    </table>\n  </div>\n  <div class=\"col-md-5 col-lg-5\"></div>\n</div>"
 
 /***/ }),
 
@@ -291,14 +295,15 @@ var IssuesComponent = /** @class */ (function () {
             this.showError = false;
             this.searching = true;
             this._githubService.getTotalIssues(url)
-                .subscribe(function (data) { return _this.results.total = data.open_issues; });
+                .subscribe(function (data) { return _this.results.total = data.total_count; });
             this._githubService.getOpenIssuesYesterday(url)
                 .subscribe(function (data) { return _this.results.yesterday = data.total_count; });
             this._githubService.getOpenIssuesInWeek(url)
                 .subscribe(function (data) { return _this.results.week = data.total_count; });
             this._githubService.getOpenIssuesBeforeWeek(url)
-                .subscribe(function (data) { return _this.results.beforeWeek = data.total_count; });
-            this.searching = false;
+                .subscribe(function (data) { return _this.results.beforeWeek = data.total_count; }).add(function () {
+                _this.searching = false;
+            });
         }
     };
     IssuesComponent = tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"]([

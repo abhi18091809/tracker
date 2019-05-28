@@ -11,8 +11,10 @@
 <div class="row search-container">
   <div class="col-md-7 col-lg-7">
     <button *ngIf="!searching" class="btn btn-primary float-right" (click)="getResults(url)">Get Results</button>
+    <img *ngIf="searching" class="float-right" src="assets/ripple.svg" width="40" height="40" alt="">
   </div>
-  <div class="col-md-5 col-lg-5"></div>
+  <div class="col-md-5 col-lg-5">
+  </div>
 </div>
 
 <div class="row table-wrapper">
