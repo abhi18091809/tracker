@@ -2,6 +2,7 @@ package com.issues.tracker.github.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.issues.tracker.github.Config.GithubPropertyManager;
+import com.issues.tracker.github.Request.RepositoryResponse;
 import com.issues.tracker.github.Request.SearchResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,27 +61,47 @@ public class GithubService {
 
             //Getting open pull requests
             String searchQuery = "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
-                    ":issue+is:open";
+                    ":pr+is:open";
 
-            UriComponentsBuilder builder =
-                    UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
-                            .queryParam("q", searchQuery);
+            SearchResponse pullRequests = githubSearchHttpExchange(searchQuery);
 
-            Map<String,String> map = new HashMap<>();
-            map.put("q",searchQuery);
+            RepositoryResponse issues = restTemplate.exchange(url,
+                    HttpMethod.GET,null,
+                    RepositoryResponse.class).getBody();
 
-            ResponseEntity<SearchResponse> response =
-                    restTemplate.exchange(builder.buildAndExpand(map).toUri(),
-                            HttpMethod.GET,null,
-                            SearchResponse.class);
-
-            if (response.getBody() != null) {
-                return response.getBody();
+            SearchResponse result = new SearchResponse();
+            if (issues != null && pullRequests != null) {
+                    result.setTotalCount(issues.getOpenIssues()-pullRequests.getTotalCount());
             }
+
+            return result;
+
+
 
         } catch (Exception e) {
             logger.error("Error in fetching details of repository");
         }
+        return null;
+    }
+
+    private SearchResponse githubSearchHttpExchange(String searchQuery) {
+
+        UriComponentsBuilder builder =
+                UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
+                        .queryParam("q", searchQuery);
+
+        Map<String,String> map = new HashMap<>();
+        map.put("q",searchQuery);
+
+        ResponseEntity<SearchResponse> response =
+                restTemplate.exchange(builder.buildAndExpand(map).toUri(),
+                        HttpMethod.GET,null,
+                        SearchResponse.class);
+
+        if (response.getBody() != null) {
+            return response.getBody();
+        }
+
         return null;
     }
 
@@ -100,25 +121,21 @@ public class GithubService {
 
             Map<String, String> params = getParamsFromUrl(publicUrl);
             String searchQuery =
-                    "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
-                            ":issue+is:open+created:>"+dtf.format(dMinusOne);
+                    "repo:"+params.get("owner")+"/"+params.get("repo")+
+                            "+created:>"+dtf.format(dMinusOne);
+            String pullRequestQuery = "repo:"+params.get("owner")+"/"+params.get("repo")+
+                    "+is:pr+is:open+created:>"+dtf.format(dMinusOne);
 
+            SearchResponse issuesInDay = githubSearchHttpExchange(searchQuery);
+            SearchResponse pullInDay = githubSearchHttpExchange(pullRequestQuery);
 
-            UriComponentsBuilder builder =
-                    UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
-                    .queryParam("q", searchQuery);
+            SearchResponse result = new SearchResponse();
 
-            Map<String,String> map = new HashMap<>();
-            map.put("q",searchQuery);
-
-            ResponseEntity<SearchResponse> response =
-                    restTemplate.exchange(builder.buildAndExpand(map).toUri(),
-                            HttpMethod.GET,null,
-                            SearchResponse.class);
-
-            if (response.getBody() != null) {
-                return response.getBody();
+            if (pullInDay != null && issuesInDay != null) {
+                result.setTotalCount(issuesInDay.getTotalCount()-pullInDay.getTotalCount());
             }
+
+            return result;
 
         } catch (Exception e) {
             logger.error("Error in fetching issues opened in last 24 hours", e);
@@ -156,37 +173,36 @@ public class GithubService {
             Map<String, String> params = getParamsFromUrl(publicUrl);
 
             String searchQuery1 =
-                    "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
-                            ":issue+is:open+created:>"+dtf.format(d1);
-            String searchQuery2 = "repo:"+params.get("owner")+"/"+params.get("repo")+
-                    "+is:issue+is:open+created:>"+dtf.format(d2);
+                    "repo:"+params.get("owner")+"/"+params.get("repo")+
+                            "+created:>"+dtf.format(d1);
+            String searchQuery2 = "repo:"+params.get("owner")+"/"+params.get(
+                    "repo")+"+created:>"+dtf.format(d2);
 
-            Map<String,String> map1 = new HashMap<>();
-            map1.put("q",searchQuery1);
+            SearchResponse issues1 = githubSearchHttpExchange(searchQuery1);
+            SearchResponse issues2 = githubSearchHttpExchange(searchQuery2);
+            SearchResponse totalIssues = new SearchResponse();
+            if (issues1 != null && issues2 != null) {
+                totalIssues.setTotalCount(issues2.getTotalCount()-issues1.getTotalCount());
+            }
 
-            Map<String,String> map2 = new HashMap<>();
-            map2.put("q",searchQuery2);
+            String pullQuery1 =
+                    "repo:"+params.get("owner")+"/"+params.get("repo")+
+                            "+is:pr+is:open+created:>"+dtf.format(d1);
+            String pullQuery2 = "repo:"+params.get("owner")+"/"+params.get(
+                    "repo")+"+is:pr+is:open+created:>"+dtf.format(d2);
 
-            UriComponentsBuilder builder1 =
-                    UriComponentsBuilder.fromUriString(SEARCH_ISSUE_URL)
-                    .queryParam("q", searchQuery1);
+            SearchResponse pulls1 = githubSearchHttpExchange(pullQuery1);
+            SearchResponse pulls2 = githubSearchHttpExchange(pullQuery2);
 
-            UriComponentsBuilder builder2 =
-                    UriComponentsBuilder.fromUriString(SEARCH_ISSUE_URL)
-                            .queryParam("q", searchQuery2);
+            SearchResponse totalPulls = new SearchResponse();
 
-            ResponseEntity<SearchResponse> response1 =
-                    restTemplate.exchange(builder1.buildAndExpand(map1).toUri(),
-                            HttpMethod.GET,null,
-                            SearchResponse.class);
+            if (pulls2 != null && pulls1 != null) {
+                totalPulls.setTotalCount(pulls2.getTotalCount()-pulls1.getTotalCount());
+            }
 
-            ResponseEntity<SearchResponse> response2 =
-                    restTemplate.exchange(builder2.buildAndExpand(map2).toUri(),
-                            HttpMethod.GET,null,
-                            SearchResponse.class);
 
             SearchResponse response = new SearchResponse();
-            response.setTotalCount(response2.getBody().getTotalCount() - response1.getBody().getTotalCount());
+            response.setTotalCount(totalIssues.getTotalCount()-totalPulls.getTotalCount());
 
             return response;
 
@@ -210,47 +226,47 @@ public class GithubService {
 
             logger.info("Github service layer invoked to get all open issues " +
                     "opened before seven days from now");
-
             Map<String, String> params = getParamsFromUrl(publicUrl);
-
-            String searchQuery = "repo:"+params.get("owner")+"/"+params.get("repo")+"+is" +
-                    ":issue+is:open";
-
-            UriComponentsBuilder builder =
-                    UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
-                            .queryParam("q", searchQuery);
-
-            Map<String,String> map = new HashMap<>();
-            map.put("q",searchQuery);
-
-            ResponseEntity<SearchResponse> responseAll =
-                    restTemplate.exchange(builder.buildAndExpand(map).toUri(),
-                            HttpMethod.GET,null,
-                            SearchResponse.class);
+            String url = "https://api.github.com/repos/"+params.get("owner")+
+                    "/"+params.get("repo");
 
             Date dMinusSeven = getDifferenceWithCurrent(-168);
-
             SimpleDateFormat dtf = new SimpleDateFormat(DATE_FORMAT);
 
-            String searchQuery2 =
+            String searchQuery1 = "repo:"+params.get("owner")+"/"+params.get("repo")+
+                    "+created:>"+dtf.format(dMinusSeven);
+            SearchResponse issues1 = githubSearchHttpExchange(searchQuery1);
+            RepositoryResponse issues2 = restTemplate.exchange(url,
+                    HttpMethod.GET,null,
+                    RepositoryResponse.class).getBody();
+
+            SearchResponse totalIssues = new SearchResponse();
+
+            if (issues1 != null && issues2 != null) {
+                totalIssues.setTotalCount(issues2.getOpenIssues()-issues1.getTotalCount());
+            }
+
+
+
+
+
+            String pullQuery1 =
                     "repo:"+params.get("owner")+"/"+params.get("repo")+
-                            "+is:issue+is:open+created:>"+dtf.format(dMinusSeven);
+                            "+is:pr+is:open+created:>"+dtf.format(dMinusSeven);
+            String pullQuery2 = "repo:"+params.get("owner")+"/"+params.get(
+                    "repo")+"+is:pr+is:open";
 
+            SearchResponse pulls1 = githubSearchHttpExchange(pullQuery1);
+            SearchResponse pulls2 = githubSearchHttpExchange(pullQuery2);
 
-            UriComponentsBuilder builder2 =
-                    UriComponentsBuilder.fromHttpUrl(SEARCH_ISSUE_URL)
-                            .queryParam("q", searchQuery2);
+            SearchResponse totalPulls = new SearchResponse();
 
-            Map<String,String> map2 = new HashMap<>();
-            map.put("q",searchQuery);
-
-            ResponseEntity<SearchResponse> responseMinusSeven =
-                    restTemplate.exchange(builder2.buildAndExpand(map2).toUri(),
-                            HttpMethod.GET,null,
-                            SearchResponse.class);
+            if (pulls2 != null && pulls1 != null) {
+                totalPulls.setTotalCount(pulls2.getTotalCount()-pulls1.getTotalCount());
+            }
 
             SearchResponse response = new SearchResponse();
-            response.setTotalCount(responseAll.getBody().getTotalCount() - responseMinusSeven.getBody().getTotalCount());
+            response.setTotalCount(totalIssues.getTotalCount()-totalPulls.getTotalCount());
 
             return response;
 
